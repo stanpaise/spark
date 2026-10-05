@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spark · The habit game you actually own</title>
+<style>
+  :root{
+    --grad: linear-gradient(135deg,#ff5e7e 0%,#ff8a5c 50%,#ffc24b 100%);
+    --grad2: linear-gradient(135deg,#8b5cf6 0%,#ec4899 100%);
+    --grad3: linear-gradient(135deg,#06b6d4 0%,#10b981 100%);
+    --ink:#221133; --muted:#7a6f8f; --card:#ffffff;
+    --bg-grad: linear-gradient(160deg,#fff0f3 0%,#fdf6ff 45%,#effcff 100%);
+    --ring: rgba(255,94,126,.25);
+    --shadow: 0 10px 30px rgba(120,60,140,.12);
+    --r: 20px; --speed:.25s;
+  }
+  [data-theme="mint"]{ --grad: linear-gradient(135deg,#10b981,#06b6d4 60%,#3b82f6); --grad2: linear-gradient(135deg,#06b6d4,#10b981); --grad3: linear-gradient(135deg,#f59e0b,#f97316); --ink:#062b24; --muted:#5d7a74; --ring: rgba(16,185,129,.25); --bg-grad: linear-gradient(160deg,#effcf5 0%,#f0fbff 50%,#f5f2ff 100%);}
+  [data-theme="galaxy"]{ --grad: linear-gradient(135deg,#8b5cf6,#ec4899 60%,#f43f5e); --grad2: linear-gradient(135deg,#3b82f6,#8b5cf6); --grad3: linear-gradient(135deg,#06b6d4,#8b5cf6); --ink:#1b1035; --muted:#6f6591; --ring: rgba(139,92,246,.25); --bg-grad: linear-gradient(160deg,#f3efff 0%,#fdf0f8 50%,#eef4ff 100%);}
+  [data-theme="dark"]{ --ink:#f3eef7; --muted:#a89cc0; --card:#241a38; --ring: rgba(236,72,153,.35); --bg-grad: linear-gradient(160deg,#160f26 0%,#1d1233 55%,#241236 100%); --shadow: 0 10px 30px rgba(0,0,0,.45);}
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family: ui-rounded, "SF Pro Rounded", nunito, "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--bg-grad); color:var(--ink); min-height:100vh;
+    transition: background .4s ease, color .3s ease;
+  }
+  button{font-family:inherit; cursor:pointer; border:none; background:none; color:inherit;}
+  input,select,textarea{font-family:inherit; color:inherit;}
+
+  .wrap{max-width:1060px; margin:0 auto; padding:18px 18px 120px;}
+
+  /* ---------- top bar ---------- */
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 18px; margin-bottom:18px;
+    background:var(--card); border-radius:var(--r); box-shadow:var(--shadow);
+    position:sticky; top:12px; z-index:50;
+  }
+  .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; letter-spacing:.2px;}
+  .logo{width:38px;height:38px;border-radius:12px;background:var(--grad);display:grid;place-items:center;font-size:20px; box-shadow:0 6px 14px var(--ring);}
+  .xpchip{display:flex;align-items:center;gap:8px;background:var(--grad2);color:#fff;font-weight:800;padding:7px 14px;border-radius:999px;font-size:14px; box-shadow:0 6px 14px var(--ring);}
+  .xpchip small{font-weight:700;opacity:.85;}
+  .headright{display:flex;align-items:center;gap:8px;}
+  .profilechip{
+    display:flex;align-items:center;gap:8px;background:var(--ring);
+    padding:6px 14px 6px 6px;border-radius:999px;font-weight:800;font-size:14px;
+    transition:transform var(--speed), box-shadow var(--speed);
+  }
+  .profilechip:hover{transform:translateY(-2px) scale(1.03); box-shadow:0 6px 14px var(--ring);}
+  .profilechip .avatar{width:28px;height:28px;border-radius:50%;background:var(--grad);display:grid;place-items:center;font-size:16px;}
+  .avatarbig{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;font-size:28px;background:var(--ring);transition:transform var(--speed);}
+  .avatarbig:hover{transform:scale(1.15);}
+  .avatarbig.on{outline:3px solid var(--ink);outline-offset:2px;background:var(--grad);}
+  .onbcenter{text-align:center;}
+  .onbcenter .logo{margin:0 auto 10px; width:56px;height:56px;font-size:30px;border-radius:18px; animation:bob 2.4s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+  .gradtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .skip{margin-top:12px;font-size:13px;font-weight:700;color:var(--muted);text-decoration:underline;}
+  .heropill .label{max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex; gap:8px; margin-bottom:16px; overflow-x:auto; padding:4px;}
+  .tab{
+    padding:10px 18px; border-radius:999px; font-weight:800; font-size:15px;
+    background:var(--card); color:var(--muted); box-shadow:var(--shadow);
+    transition:transform var(--speed), background var(--speed), color var(--speed);
+    white-space:nowrap;
+  }
+  .tab:hover{transform:translateY(-2px);}
+  .tab.on{background:var(--grad); color:#fff;}
+
+  /* ---------- cards / generic ---------- */
+  .card{background:var(--card); border-radius:var(--r); box-shadow:var(--shadow); padding:18px;}
+  .muted{color:var(--muted);}
+  .hidden{display:none !important;}
+
+  /* ---------- hero ---------- */
+  .hero{display:flex; align-items:center; gap:18px; flex-wrap:wrap; margin-bottom:16px;}
+  .heropill{background:var(--card); border-radius:var(--r); box-shadow:var(--shadow); padding:16px 22px; display:flex; align-items:center; gap:14px; flex:1; min-width:220px;}
+  .heropill .big{font-size:34px;}
+  .heropill .label{font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.12em; color:var(--muted);}
+  .heropill .val{font-size:22px; font-weight:800;}
+
+  /* ---------- habit list ---------- */
+  .habit{
+    display:flex; align-items:center; gap:14px;
+    background:var(--card); border-radius:var(--r); box-shadow:var(--shadow);
+    padding:14px 16px; margin-bottom:12px; transition:transform var(--speed), box-shadow var(--speed);
+    position:relative;
+  }
+  .habit:hover{transform:translateY(-2px); box-shadow:0 14px 34px rgba(120,60,140,.16);}
+  .habit.pop{animation:pop .45s cubic-bezier(.2,2.2,.4,1);}
+  @keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.045)}100%{transform:scale(1)}}
+  .checkbox{
+    width:46px;height:46px;border-radius:16px; border:3px solid var(--hcol,#ff5e7e);
+    display:grid;place-items:center;font-size:24px;color:#fff;flex-shrink:0;
+    transition:all var(--speed); background:transparent;
+  }
+  .checkbox:hover{transform:scale(1.08) rotate(-3deg);}
+  .checkbox.done{background:var(--hcol,#ff5e7e); border-color:var(--hcol,#ff5e7e); animation:pop .4s cubic-bezier(.2,2.2,.4,1);}
+  .hname{font-weight:800; font-size:17px;}
+  .hemoji{font-size:24px;}
+  .hsub{font-size:13px; color:var(--muted); font-weight:600; margin-top:2px;}
+  .streak{
+    display:flex;align-items:center;gap:4px;font-weight:800;font-size:15px;
+    padding:6px 12px;border-radius:999px;background:var(--ring);white-space:nowrap;
+  }
+  .streak.hot{background:var(--grad); color:#fff; animation:flicker 1.6s ease-in-out infinite;}
+  @keyframes flicker{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  .rowbtns{display:flex;gap:6px;margin-left:auto;align-items:center;}
+  .iconbtn{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-size:16px;color:var(--muted);transition:all var(--speed);}
+  .iconbtn:hover{background:var(--ring); color:var(--ink); transform:scale(1.1);}
+  .miniweek{display:flex;gap:5px;margin-left:6px;}
+  .miniweek span{width:22px;height:22px;border-radius:8px;background:var(--ring);display:grid;place-items:center;font-size:10px;font-weight:800;color:var(--muted);}
+  .miniweek span.y{background:var(--hcol,#ff5e7e);color:#fff;}
+  .tag{font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;background:var(--ring);color:var(--ink);white-space:nowrap;}
+
+  /* ---------- add form ---------- */
+  .addrow{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .field{
+    background:var(--card); border:2px solid transparent; border-radius:14px;
+    padding:12px 16px; font-size:15px; font-weight:600; box-shadow:var(--shadow); outline:none;
+    transition:border var(--speed);
+  }
+  .field:focus{border-color:var(--hcol,#ff5e7e);}
+  .btn{
+    background:var(--grad); color:#fff; font-weight:800; font-size:15px;
+    padding:12px 22px; border-radius:14px; box-shadow:0 8px 18px var(--ring);
+    transition:transform var(--speed), box-shadow var(--speed);
+  }
+  .btn:hover{transform:translateY(-2px) scale(1.02); box-shadow:0 12px 24px var(--ring);}
+  .btn:active{transform:scale(.97);}
+  .btn.ghost{background:var(--card); color:var(--ink); box-shadow:var(--shadow);}
+  .btn.small{padding:8px 14px; font-size:13px; border-radius:12px;}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed; inset:0; background:rgba(30,10,50,.45); backdrop-filter:blur(6px); display:grid; place-items:center; z-index:100; padding:18px;}
+  .modal{background:var(--card); border-radius:24px; padding:26px; max-width:480px; width:100%; box-shadow:0 30px 80px rgba(0,0,0,.35); max-height:88vh; overflow:auto;}
+  .modal h2{margin-bottom:4px;}
+  .chipgrid{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 14px;}
+  .chip{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-size:22px;background:var(--ring);transition:transform var(--speed);}
+  .chip:hover{transform:scale(1.15);}
+  .chip.on{outline:3px solid var(--ink); outline-offset:2px;}
+  .swatch{width:32px;height:32px;border-radius:50%;transition:transform var(--speed);}
+  .swatch:hover{transform:scale(1.2);}
+  .swatch.on{outline:3px solid var(--ink); outline-offset:2px;}
+  .formlabel{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:14px 0 6px;}
+  .seg{display:flex;gap:8px;flex-wrap:wrap;}
+  .seg button{padding:8px 14px;border-radius:12px;background:var(--ring);font-weight:700;font-size:13px;}
+  .seg button.on{background:var(--grad);color:#fff;}
+  .textin{width:100%;background:var(--ring);border:2px solid transparent;border-radius:12px;padding:11px 14px;font-size:14px;font-weight:600;outline:none;}
+  .textin:focus{border-color:var(--hcol,#ff5e7e);}
+
+  /* ---------- journal ---------- */
+  .jentry{border-left:4px solid var(--hcol,#ff5e7e); padding:10px 14px; margin-bottom:10px; background:var(--ring); border-radius:12px;}
+  .jentry .jhead{display:flex;justify-content:space-between;gap:10px;font-weight:800;font-size:14px;flex-wrap:wrap;}
+  .jentry p{font-size:14px;margin-top:4px;white-space:pre-wrap;}
+
+  /* ---------- stats ---------- */
+  .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;}
+  .stat{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;text-align:center;}
+  .hhrow{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:2px dashed var(--ring);}
+  .hhrow:last-child{border-bottom:none;}
+  .hhrow.you{background:var(--ring);border-radius:12px;padding:9px 8px;}
+  .hhrow .hmedal{font-size:18px;width:26px;text-align:center;}
+  .hhrow .hava{font-size:22px;}
+  .hhrow .hname{flex:1;min-width:0;font-weight:800;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hhrow .hname small{color:var(--muted);font-weight:700;}
+  .hhrow .htag{font-weight:800;font-size:13px;background:var(--card);padding:5px 10px;border-radius:999px;white-space:nowrap;box-shadow:var(--shadow);}
+  .stat .n{font-size:30px;font-weight:800;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .stat .l{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:2px;}
+  .barchart{display:flex;align-items:flex-end;gap:4px;height:130px;padding:8px 4px 0;}
+  .barchart .b{flex:1;background:var(--grad);border-radius:6px 6px 2px 2px;min-height:3px;position:relative;transition:height .5s cubic-bezier(.2,1.4,.4,1);opacity:.9;}
+  .barchart .b:hover{opacity:1;}
+  .barchart .b em{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:800;font-style:normal;opacity:0;transition:opacity var(--speed);}
+  .barchart .b:hover em{opacity:1;}
+  .chartlab{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--muted);margin-top:6px;padding:0 4px;}
+  .heat{display:grid;grid-template-columns:repeat(auto-fill,minmax(16px,1fr));gap:4px;}
+  .heat span{aspect-ratio:1;border-radius:5px;background:var(--ring);}
+  .heat span.on{background:var(--grad);}
+
+  /* ---------- achievements ---------- */
+  .achgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+  .ach{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;display:flex;gap:12px;align-items:center;opacity:.45;filter:grayscale(1);transition:all .4s;}
+  .ach.won{opacity:1;filter:none;}
+  .ach .medal{font-size:30px;}
+  .ach b{font-size:14px;}
+  .ach small{color:var(--muted);font-size:12px;display:block;font-weight:600;}
+
+  /* ---------- settings ---------- */
+  .setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px dashed var(--ring);flex-wrap:wrap;}
+  .setrow:last-child{border-bottom:none;}
+  .setrow b{font-size:15px;}
+  .setrow small{display:block;color:var(--muted);font-weight:600;margin-top:2px;font-size:12.5px;}
+
+  /* ---------- login & pin ---------- */
+  #loginOverlay{z-index:95;}
+  #pinOverlay{z-index:120;}
+  body.locked{overflow:hidden;}
+  .loginmodal{max-width:560px;}
+  .loginGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px;margin-top:18px;}
+  .acctcard{
+    background:var(--ring);border-radius:var(--r);padding:18px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;
+    transition:transform var(--speed), box-shadow var(--speed);
+  }
+  .acctcard:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 10px 24px var(--ring);}
+  .acctcard .big{font-size:40px;line-height:1.1;}
+  .acctcard b{font-size:14px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .acctcard .lock{font-size:11px;font-weight:800;color:var(--muted);}
+  .acctcard.add{border:2px dashed var(--muted);color:var(--muted);background:transparent;justify-content:center;}
+  .pinsub{font-size:13px;font-weight:700;color:var(--muted);margin-bottom:4px;}
+  .pindots{display:flex;gap:12px;justify-content:center;margin:14px 0 18px;}
+  .pindots span{width:16px;height:16px;border-radius:50%;background:var(--ring);transition:all .15s;}
+  .pindots span.on{background:var(--grad);transform:scale(1.25);}
+  .pindots.shake{animation:shake .45s;}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+  .pinpad{display:grid;grid-template-columns:repeat(3,64px);gap:10px;justify-content:center;}
+  .pinpad button{width:64px;height:64px;border-radius:50%;font-size:24px;font-weight:800;background:var(--ring);transition:transform .12s, background .2s, color .2s;}
+  .pinpad button:hover{background:var(--grad);color:#fff;}
+  .pinpad button:active{transform:scale(.9);}
+
+  /* ---------- confetti & toasts ---------- */
+  #confetti{position:fixed;inset:0;pointer-events:none;z-index:200;}
+  .confetto{position:absolute;top:-20px;border-radius:3px;animation:fall linear forwards;}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.9;}}
+  #toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;gap:8px;align-items:center;}
+  .toast{background:var(--ink);color:var(--card);font-weight:800;font-size:14px;padding:12px 20px;border-radius:999px;box-shadow:0 12px 30px rgba(0,0,0,.25);animation:rise .3s ease;display:flex;gap:8px;align-items:center;}
+  @keyframes rise{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+  footer{text-align:center;color:var(--muted);font-size:12.5px;font-weight:600;margin-top:28px;line-height:1.7;}
+  @media (max-width:640px){
+    .heropill{min-width:calc(50% - 9px);}
+    header{position:static;}
+  }
+</style>
+</head>
+<body>
+<div id="confetti"></div>
+<div id="toasts"></div>
+
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="logo">⚡</div> Spark</div>
+    <div class="headright">
+      <button id="switchBtn" class="profilechip hidden" title="Switch account" style="padding:6px 14px;font-size:13px">⇄ Switch</button>
+      <button id="profileChip" class="profilechip hidden" title="Edit profile"></button>
+      <div class="xpchip">🧁 <span id="xpVal">0</span> <small id="lvlTag">LVL 1</small></div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab on" data-v="today">✅ Today</button>
+    <button class="tab" data-v="journal">📔 Journal</button>
+    <button class="tab" data-v="stats">📊 Stats</button>
+    <button class="tab" data-v="awards">🏆 Awards</button>
+    <button class="tab" data-v="settings">⚙️ Settings</button>
+  </nav>
+
+  <section id="v-today">
+    <div class="hero">
+      <div class="heropill"><span class="big" id="heroEmoji">🌞</span><div><div class="label">Today</div><div class="val" id="heroDate">—</div></div></div>
+      <div class="heropill"><span class="big">🔥</span><div><div class="label">Best streak</div><div class="val" id="heroBest">0 days</div></div></div>
+      <div class="heropill"><span class="big">🎯</span><div><div class="label">Today</div><div class="val" id="heroDone">0 / 0</div></div></div>
+      <div class="heropill" id="heroProfile" role="button" title="Edit profile" style="cursor:pointer"><span class="big" id="hpAvatar">👋</span><div><div class="label" id="hpGreet">Welcome</div><div class="val" id="hpName">Set up profile</div></div></div>
+    </div>
+
+    <div id="habitList"></div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="addrow">
+        <input id="newName" class="field" style="flex:2;min-width:170px" placeholder="New habit… e.g. Drink water 💧" maxlength="40">
+        <input id="newEmoji" class="field" style="width:74px;text-align:center" placeholder="😀" maxlength="2">
+        <button id="newColorBtn" class="btn ghost" style="padding:0 16px" title="Pick a color">🎨</button>
+        <button id="addBtn" class="btn">＋ Add habit</button>
+      </div>
+      <div id="newColorRow" class="hidden" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center"></div>
+      <div class="muted" style="font-size:12.5px;font-weight:600;margin-top:10px">
+        ✨ Your habits stay in <b>your</b> browser — nothing is uploaded anywhere, and updates will never reshuffle them. Reorder freely with ↑ ↓.
+      </div>
+    </div>
+  </section>
+
+  <section id="v-journal" class="hidden">
+    <div class="card">
+      <h2 style="margin-bottom:2px">📔 Journal</h2>
+      <p class="muted" style="font-weight:600;margin-bottom:14px">Every note you write on a habit, in one place — newest first. (The feature reviewers wished for!)</p>
+      <div class="addrow" style="margin-bottom:16px">
+        <input id="jSearch" class="field" style="flex:1;min-width:160px" placeholder="🔍 Search notes…">
+        <select id="jFilter" class="field" style="min-width:150px"><option value="">All habits</option></select>
+      </div>
+      <div id="jList"></div>
+    </div>
+  </section>
+
+  <section id="v-stats" class="hidden">
+    <div class="statgrid" id="statTiles"></div>
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin-bottom:10px">🏠 Household board</h2>
+      <div id="hhBoard"></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin-bottom:10px">📅 Last 30 days</h2>
+      <div class="barchart" id="bar30"></div>
+      <div class="chartlab"><span>30 days ago</span><span>Today</span></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-bottom:10px">🔥 26-week heatmap (all habits)</h2>
+      <div class="heat" id="heat"></div>
+      <div class="chartlab"><span>~6 months ago</span><span>Now</span></div>
+    </div>
+  </section>
+
+  <section id="v-awards" class="hidden">
+    <div class="card">
+      <h2 style="margin-bottom:14px">🏆 Achievements</h2>
+      <div class="achgrid" id="achGrid"></div>
+    </div>
+  </section>
+
+  <section id="v-settings" class="hidden">
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin-bottom:6px">👤 Profile</h2>
+      <div class="setrow">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="avatarbig" style="cursor:default" id="setAvatar">👋</div>
+          <div>
+            <b id="setName">Not set up yet</b>
+            <small id="setTag">Tap “Edit profile” to add your name, avatar &amp; motto.</small>
+          </div>
+        </div>
+        <button id="editProfileBtn" class="btn small">Edit profile</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin-bottom:6px">🔒 Account &amp; security</h2>
+      <div class="setrow">
+        <div><b>🔑 PIN lock</b><small id="pinStatus">…</small></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="pinBtns"></div>
+      </div>
+      <div class="setrow hidden" id="hintRow">
+        <div style="flex:1;min-width:200px">
+          <b>💭 PIN hint</b><small>Shown after a wrong PIN at login. Optional, and stored only on this device.</small>
+          <input id="hintInput" class="textin" style="margin-top:8px" maxlength="40" placeholder="e.g. the dog's name">
+        </div>
+        <button id="hintSaveBtn" class="btn small">Save hint</button>
+      </div>
+      <div class="setrow">
+        <div><b>⏱ Auto-lock</b><small>Sign out automatically after inactivity.</small></div>
+        <div class="seg" id="lockSeg">
+          <button data-m="0">Off</button>
+          <button data-m="5">5 min</button>
+          <button data-m="15">15 min</button>
+        </div>
+      </div>
+      <div class="setrow">
+        <div><b>👥 Accounts on this device</b><small id="acctCount"></small></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="addAcctBtn" class="btn small ghost">＋ Add account</button>
+          <button id="logoutBtn" class="btn small ghost">Log out</button>
+        </div>
+      </div>
+      <div class="setrow">
+        <div><b>🗑 Delete this account</b><small>Removes this account and its data from the device. Other accounts stay.</small></div>
+        <button id="deleteAcctBtn" class="btn small ghost" style="color:#e11d48">Delete</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin-bottom:6px">🎨 Appearance</h2>
+      <div class="formlabel">Theme</div>
+      <div class="seg" id="themeSeg">
+        <button data-t="candy">🍬 Candy</button>
+        <button data-t="mint">🌿 Mint</button>
+        <button data-t="galaxy">🌌 Galaxy</button>
+        <button data-t="dark">🌙 Dark</button>
+      </div>
+      <div class="formlabel">Celebration level</div>
+      <div class="seg" id="fxSeg">
+        <button data-fx="full">🎉 Everything</button>
+        <button data-fx="some">✨ Some</button>
+        <button data-fx="off">🤫 Off</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin-bottom:4px">🗄 Archived habits</h2>
+      <p class="muted" style="font-weight:600;margin-bottom:6px">Parked, not deleted — streaks, XP and history are all kept. Restore any time.</p>
+      <div id="archList"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h2 style="margin-bottom:4px">🧳 Your data, your rules</h2>
+      <p class="muted" style="font-weight:600;margin-bottom:6px">Spark is local-first: everything lives in this browser, nothing on a cloud you can't clean. Back up or leave any time.</p>
+      <div class="setrow">
+        <div><b>⬇️ Export backup</b><small>Download a human-readable JSON file with everything.</small></div>
+        <button id="exportBtn" class="btn small">Export</button>
+      </div>
+      <div class="setrow">
+        <div><b>⬆️ Import backup</b><small>Merges by habit ID — never duplicates on re-import.</small></div>
+        <button id="importBtn" class="btn small ghost">Import</button>
+        <input type="file" id="importFile" accept=".json" class="hidden">
+      </div>
+      <div class="setrow">
+        <div><b>📊 Export CSV</b><small>Every check-in ever, as a spreadsheet — works in Sheets, Excel &amp; Numbers.</small></div>
+        <button id="csvBtn" class="btn small ghost">Download CSV</button>
+      </div>
+      <div class="setrow">
+        <div><b>🗃 Every account, one file</b><small>Whole-device backup — move Spark to a new browser or keep a spare copy of everyone.</small></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="devExportBtn" class="btn small ghost">Export all</button>
+          <button id="devImportBtn" class="btn small ghost">Restore</button>
+          <input type="file" id="devImportFile" accept=".json" class="hidden">
+        </div>
+      </div>
+      <div class="setrow">
+        <div><b>🔥 Wipe everything</b><small>Deletes all Spark data from this device. Truly, immediately.</small></div>
+        <button id="wipeBtn" class="btn small ghost" style="color:#e11d48">Wipe</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-bottom:6px">💡 Why Spark is different</h2>
+      <p class="muted" style="font-weight:600;line-height:1.7">
+        ⚡ Free & complete — no subscription, no paywall, no “pro” nagging.<br>
+        📦 Local-first — your habits live on your device; no cloud account, no sync surprises, no duplicates.<br>
+        👥 Accounts on this device — separate spaces for family &amp; friends, each with its own streaks.<br>
+        🗃 One file for everything — a whole-device backup moves every account to a new browser.<br>
+        🚫 Updates never reorder or duplicate your habits — stable IDs and explicit ordering.<br>
+        📔 A real journal — all notes across habits & dates in one searchable place.<br>
+        ❄️ Streak freezes — hit a 7-day milestone, bank a shield, and one missed day won't kill your streak.<br>
+        🏠 Household board — everyone on this device, streaks side by side.<br>
+        🗄 Archive, don't delete — park habits you've outgrown; their history stays. 📊 CSV export for spreadsheets.<br>        🎉 Fun by design — streak flames, XP, confetti and awards keep you coming back.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    Spark · a love letter to habit trackers · made with ⚡ & 🧁<br>
+    Your data stays yours — export any time. Free forever, cross your heart.
+  </footer>
+</div>
+
+<!-- login / account picker -->
+<div id="loginOverlay" class="overlay hidden">
+  <div class="modal loginmodal">
+    <div class="onbcenter">
+      <div class="logo">⚡</div>
+      <h2>Who's <span class="gradtext">sparking</span>?</h2>
+      <p class="muted" style="font-weight:600">Pick an account — everything stays on this device.</p>
+    </div>
+    <div id="loginAccounts" class="loginGrid"></div>
+  </div>
+</div>
+
+<!-- PIN keypad (unlock · set · change · remove · recover) -->
+<div id="pinOverlay" class="overlay hidden">
+  <div class="modal" style="max-width:340px;text-align:center">
+    <h2 id="pinTitle" style="margin-bottom:2px">Enter PIN</h2>
+    <p class="pinsub" id="pinSub"></p>
+    <div class="pindots" id="pinDots"><span></span><span></span><span></span><span></span></div>
+    <div class="pinpad" id="pinPad"></div>
+    <div id="pinRecoverBtns" class="hidden" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:6px">
+      <button id="pinResetBtn" class="btn small" style="color:#e11d48">Reset PIN &amp; unlock</button>
+      <button id="pinNeverBtn" class="btn small ghost">Never mind</button>
+    </div>
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:12px">
+      <button id="pinForgot" class="skip hidden" style="margin-top:0">Forgot your PIN?</button>
+      <button id="pinCancel" class="skip" style="margin-top:0">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- onboarding / profile modal -->
+<div id="onbOverlay" class="overlay hidden">
+  <div class="modal">
+    <div class="onbcenter">
+      <div class="logo">⚡</div>
+      <h2 id="onbTitle">Welcome to <span class="gradtext">Spark</span>!</h2>
+      <p class="muted" style="font-weight:600;margin-bottom:8px" id="onbSub">Let's create your profile — it stays on this device, always.</p>
+    </div>
+    <div class="formlabel">What should we call you?</div>
+    <input id="onbName" class="textin" placeholder="Your name or nickname" maxlength="24">
+    <div class="formlabel">Pick your avatar</div>
+    <div class="chipgrid" id="onbAvatars"></div>
+    <div class="formlabel">Your motto <span style="text-transform:none;font-weight:600">(optional)</span></div>
+    <input id="onbTag" class="textin" placeholder="e.g. Consistency over intensity" maxlength="60">
+    <div class="formlabel">Pick your vibe</div>
+    <div class="seg" id="onbThemes">
+      <button data-t="candy">🍬 Candy</button>
+      <button data-t="mint">🌿 Mint</button>
+      <button data-t="galaxy">🌌 Galaxy</button>
+      <button data-t="dark">🌙 Dark</button>
+    </div>
+    <p class="muted" id="onbJoined" style="font-size:12.5px;font-weight:700;margin-top:12px;text-align:center"></p>
+    <div style="display:flex;gap:10px;margin-top:8px;justify-content:center">
+      <button id="onbGo" class="btn" style="flex:1">Let's go! 🚀</button>
+    </div>
+    <div class="onbcenter"><button id="onbSkip" class="skip">Skip — I'll explore first</button></div>
+  </div>
+</div>
+
+<!-- habit editor modal -->
+<div id="editOverlay" class="overlay hidden">
+  <div class="modal">
+    <h2 id="editTitle">Edit habit</h2>
+    <div class="formlabel">Name</div>
+    <input id="editName" class="textin" maxlength="40">
+    <div class="formlabel">Icon</div>
+    <div class="chipgrid" id="emojiGrid"></div>
+    <div class="formlabel">Color</div>
+    <div class="chipgrid" id="colorGrid"></div>
+    <div class="formlabel">Schedule</div>
+    <div class="seg" id="schedSeg">
+      <button data-d="0">Sun</button><button data-d="1">Mon</button><button data-d="2">Tue</button>
+      <button data-d="3">Wed</button><button data-d="4">Thu</button><button data-d="5">Fri</button><button data-d="6">Sat</button>
+    </div>
+    <div class="formlabel">Note for today (goes to your journal 📔)</div>
+    <textarea id="editNote" class="textin" rows="3" placeholder="How did it go today?"></textarea>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:space-between;flex-wrap:wrap">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button id="archiveHabit" class="btn small ghost">🗄 Archive</button>
+        <button id="deleteHabit" class="btn small ghost" style="color:#e11d48">🗑 Delete habit</button>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button id="editCancel" class="btn small ghost">Cancel</button>
+        <button id="editSave" class="btn small">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   Spark — local-first habit game
+   Fixes from Streaks reviews:
+   • no iCloud sync chaos  → data never leaves the device unless YOU export it
+   • undeletable cloud data → one-click wipe + export
+   • update duplicated/reordered tasks → stable IDs + explicit order + merge-by-id import
+   • no central notes → Journal
+   • overpriced → free, whole app, forever
+   ============================================================ */
+
+const LS_KEY      = "spark.habits.v1";    // legacy single-user data — migrated into accounts on boot
+const INDEX_KEY   = "spark.accounts.v1";  // {accounts:[{id,name,avatar,hasPin,salt,hash,created}]}
+const SESSION_KEY = "spark.session.v1";   // {id, since} — stay signed in across reloads
+const UI_KEY      = "spark.ui.v1";        // {theme} — keeps the login screen on your vibe
+const $  = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clamp = (n, a, b) => Math.min(b, Math.max(a, n));
+const todayStr = (d = new Date()) => {
+  const x = new Date(d); 
+  return x.getFullYear() + "-" + String(x.getMonth()+1).padStart(2,"0") + "-" + String(x.getDate()).padStart(2,"0");
+};
+
+/* ---------------- state ---------------- */
+let state = {
+  habits: [],           // {id, name, emoji, color, days:[dates], order, notes:{date:text}, created}
+  xp: 0, level: 1,
+  theme: "candy", fx: "full",
+  won: {},              // achievementId -> date string
+  profile: null,        // {name, avatar, tag, joined} — created in onboarding
+  importSeen: 0,
+};
+let editing = null;      // habit being edited
+let editingNoteDate = null;
+let accountId = null;    // signed-in account id (null = logged out at the login screen)
+
+function blankState(){
+  return { habits: [], xp: 0, level: 1, theme: "candy", fx: "full", won: {}, profile: null, importSeen: 0, autolock: 0 };
+}
+function normalizeState(){
+  // migration safety: guarantee fields & stable order
+  state.habits = (state.habits || []).map((h, i) => ({
+    order: i, notes: {}, days: [], created: todayStr(), freezes: 0, frozen: 0, ...h
+  })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).map((h, i) => ({ ...h, order: i, freezes: h.freezes || 0, frozen: h.frozen || 0, archived: h.archived === true }));
+  if (state.profile) state.profile = Object.assign({ name:"", avatar:"👋", tag:"", joined: todayStr() }, state.profile);
+}
+function loadState() {
+  if (!accountId) return;
+  try {
+    const raw = localStorage.getItem(acctKey(accountId));
+    if (raw) {
+      state = Object.assign(blankState(), JSON.parse(raw));
+      normalizeState();
+      applyFreezes();
+    }
+  } catch (e) { console.warn("Spark: couldn't read saved data", e); }
+}
+function save() {
+  if (!accountId) return;   // logged out → never write
+  try { localStorage.setItem(acctKey(accountId), JSON.stringify(state)); } catch (e) { toast("⚠️ Could not save locally"); }
+}
+
+/* ---------------- constants ---------------- */
+const COLORS = ["#ff5e7e","#ff8a5c","#ffc24b","#34d399","#06b6d4","#3b82f6","#8b5cf6","#ec4899","#f43f5e","#84cc16","#2dd4bf","#38bdf8","#60a5fa","#a78bfa","#c084fc","#e879f9","#a3e635","#94a3b8"];
+const AVATARS = ["🦊","🐼","🐸","🦄","🐙","🦉","🐝","🍀","⚡","🌟","🚀","🦖","🐳","🦋","🍩","🌈"];
+const EMOJIS = ["💧","🏃","📚","🧘","🥗","😴","🎸","✏️","🦷","💊","🌱","🐶","🚭","🧹","💻","☎️","🙏","🎨","💪","🚶","🧠","🌞","🍎","🚴","🏊","💰","🛁","☀️"];
+const ACH = [
+  {id:"first",   medal:"🌱", name:"First Sprout",   desc:"Complete your first habit"},
+  {id:"perfect", medal:"🌟", name:"Perfect Day",    desc:"Check off every habit in one day"},
+  {id:"s7",      medal:"🔥", name:"Week Warrior",   desc:"Reach a 7-day streak"},
+  {id:"s30",     medal:"🌋", name:"Month Master",   desc:"Reach a 30-day streak"},
+  {id:"ice",     medal:"❄️", name:"Ice Breaker",    desc:"Earn your first streak freeze"},
+  {id:"s100",    medal:"👑", name:"Century Club",   desc:"Reach a 100-day streak"},
+  {id:"x100",    medal:"🧁", name:"Sweet Tooth",    desc:"Earn 100 XP"},
+  {id:"x500",    medal:"💎", name:"XP Hoarder",     desc:"Earn 500 XP"},
+  {id:"j5",      medal:"📔", name:"Dear Diary",     desc:"Write 5 journal notes"},
+  {id:"c10",     medal:"🏗️", name:"Habit Architect",desc:"Track 10 habits at once"},
+  {id:"n100",    medal:"🧮", name:"Centurion",      desc:"100 total completions"},
+  {id:"me",      medal:"🪪", name:"This Is Me",     desc:"Create your profile"},
+];
+
+/* ---------------- helpers ---------------- */
+function habitById(id){ return state.habits.find(h => h.id === id); }
+function prevDay(ds){
+  const [y,m,d] = ds.split("-").map(Number);
+  const dt = new Date(y, m-1, d); dt.setDate(dt.getDate()-1);
+  return todayStr(dt);
+}
+/* robust streak: counts back from today (or yesterday if today not done); banked freezes ❄️ bridge missed days */
+function streakOf(h){
+  const set = new Set(h.days);
+  const today = todayStr();
+  let cursor = set.has(today) ? today : prevDay(today);
+  let shield = h.frozen || 0;
+  if (!set.has(cursor)){
+    while (!set.has(cursor) && shield > 0){ shield--; cursor = prevDay(cursor); }
+    if (!set.has(cursor)) return 0;
+  }
+  let n = 0;
+  while (true){
+    if (set.has(cursor)) n++;
+    else if (shield > 0) shield--;
+    else break;
+    cursor = prevDay(cursor);
+  }
+  return n;
+}
+function isDoneToday(h){ return h.days.includes(todayStr()); }
+function scheduledToday(h){
+  return !h.sched || h.sched.length === 0 || h.sched.length === 7 || h.sched.includes(new Date().getDay());
+}
+function xpNeed(l){ return 50 + (l-1)*25; }
+
+/* ---- streak freeze ❄️ — earn one at each 7-day milestone (max 3 banked);
+   a banked freeze is spent automatically to bridge a missed day ---- */
+const FREEZE_CAP = 3;
+function gapDays(h){
+  if (!h.days || !h.days.length) return 0;
+  const last = [...h.days].sort().pop();
+  if (last === todayStr()) return 0;
+  const [y,m,d] = last.split("-").map(Number);
+  const [Y,M,D] = todayStr().split("-").map(Number);
+  const dist = Math.round((new Date(Y, M-1, D) - new Date(y, m-1, d)) / 86400000) - 1;
+  return dist > 0 && dist < 60 ? dist : 0;
+}
+function applyFreezes(){
+  let changed = false;
+  for (const h of state.habits){
+    if (h.archived) continue;                       // parked habits stop earning & spending freezes
+    if (h.freezes == null) h.freezes = 0;
+    if (h.frozen == null) h.frozen = 0;
+    const f0 = h.frozen; h.frozen = 0;               // earn from real completions only —
+    const earned = Math.floor(streakOf(h) / 7);      // a spent freeze must not refund itself
+    h.frozen = f0;
+    if (earned > h.freezes){
+      const gain = earned - h.freezes;
+      h.freezes = Math.min(earned, FREEZE_CAP);
+      changed = true;
+      setTimeout(() => { confetti(80); toast(`${gain > 1 ? gain + " streak freezes" : "Streak freeze"} earned ❄️ ${h.emoji || "⭐"} ${esc(h.name)} is shielded!`, "❄️"); }, 600);
+    }
+    // missed exactly one scheduled day with freezes in the bank? spend one to keep the streak alive
+    const g = gapDays(h);
+    const ys = prevDay(todayStr());
+    const ySched = !h.sched || !h.sched.length || h.sched.length === 7 || h.sched.includes(new Date(ys + "T00:00:00").getDay());
+    if (g === 1 && ySched && h.frozen < h.freezes){
+      h.frozen++;
+      changed = true;
+      setTimeout(() => toast(`A freeze kept ${h.emoji || "⭐"} ${esc(h.name)} alive ❄️`, "🛡️"), 1200);
+    }
+  }
+  if (changed) save();
+}
+
+/* ---------------- confetti & toasts ---------------- */
+function confetti(n = 90) {
+  if (state.fx === "off") return;
+  if (state.fx === "some") n = Math.round(n * 0.4);
+  const box = $("#confetti");
+  const cols = ["#ff5e7e","#ffc24b","#34d399","#06b6d4","#8b5cf6","#ff8a5c","#ec4899"];
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement("div");
+    c.className = "confetto";
+    const s = 6 + Math.random()*8;
+    c.style.cssText = `left:${Math.random()*100}vw; width:${s}px; height:${s*0.5}px;`+
+      `background:${cols[i%cols.length]}; animation-duration:${2+Math.random()*2}s;`+
+      `animation-delay:${Math.random()*.4}s; transform:rotate(${Math.random()*360}deg);`;
+    box.appendChild(c);
+    setTimeout(() => c.remove(), 4600);
+  }
+}
+function toast(msg, icon = "⚡") {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+  $("#toasts").appendChild(t);
+  setTimeout(() => { t.style.opacity = "0"; t.style.transition = "opacity .3s"; setTimeout(()=>t.remove(), 320); }, 2600);
+}
+
+/* ---------------- XP / level ---------------- */
+function addXP(n){
+  state.xp = Math.max(0, state.xp + n);
+  while (state.xp >= xpNeed(state.level)) { state.xp -= xpNeed(state.level); state.level++; levelUpFx(); }
+  $("#xpVal").textContent = state.xp;
+  $("#lvlTag").textContent = "LVL " + state.level;
+}
+function levelUpFx(){
+  confetti(140);
+  toast(`Level up! You're now level ${state.level} 🎊`, "🎊");
+}
+
+/* ---------------- achievements ---------------- */
+function checkAwards(){
+  let newlyWon = [];
+  const active = state.habits.filter(h => !h.archived);
+  const total = state.habits.reduce((s,h)=>s+h.days.length,0);
+  const notes = state.habits.reduce((s,h)=>s+Object.keys(h.notes||{}).length,0);
+  const best = Math.max(0, ...active.map(streakOf), 0);
+  const perfectToday = active.filter(scheduledToday).length > 0 &&
+    active.filter(scheduledToday).every(isDoneToday);
+  const doneTodayCount = active.filter(isDoneToday).length;
+  const rules = [
+    ["first",  doneTodayCount >= 1],
+    ["perfect",perfectToday],
+    ["s7",  best >= 7], ["s30", best >= 30], ["s100", best >= 100],
+    ["ice", state.habits.some(h => (h.freezes || 0) > 0)],
+    ["x100", state.xp >= 100 || state.level > 2], ["x500", state.level >= 6],
+    ["j5",  notes >= 5], ["c10", active.length >= 10], ["n100", total >= 100],
+    ["me", !!(state.profile && state.profile.name)],
+  ];
+  for (const [id, ok] of rules) {
+    if (ok && !state.won[id]) {
+      state.won[id] = todayStr();
+      newlyWon.push(id);
+      const a = ACH.find(a=>a.id===id);
+      toast(`${a.medal} Achievement: ${a.name}!`, "🏆");
+      confetti(120);
+    }
+  }
+  if (newlyWon.length) save();
+}
+
+/* ---------------- rendering ---------------- */
+let view = "today";
+function setView(v){
+  view = v;
+  $$("#tabs .tab").forEach(t => t.classList.toggle("on", t.dataset.v === v));
+  ["today","journal","stats","awards","settings"].forEach(x =>
+    $("#v-"+x).classList.toggle("hidden", x !== v));
+  render();
+}
+$$("#tabs .tab").forEach(t => t.onclick = () => setView(t.dataset.v));
+
+function render(){
+  renderHeader(); renderHero(); renderHabits(); renderJournal(); renderStats(); renderAwards(); renderSettings();
+}
+
+function renderHeader(){
+  const chip = $("#profileChip");
+  $("#switchBtn").classList.toggle("hidden", !accountId);
+  if (state.profile && state.profile.name) {
+    chip.classList.remove("hidden");
+    chip.innerHTML = `<span class="avatar">${state.profile.avatar || "👋"}</span>${esc(state.profile.name.split(" ")[0])}`;
+  } else {
+    chip.classList.add("hidden");
+  }
+}
+function greetWord(){
+  const h = new Date().getHours();
+  return h < 5 ? "Night owl mode" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+}
+
+function renderHero(){
+  const d = new Date();
+  const hr = d.getHours();
+  $("#heroEmoji").textContent = hr < 6 ? "🌙" : hr < 12 ? "🌞" : hr < 18 ? "☀️" : "🌆";
+  $("#heroDate").textContent = d.toLocaleDateString(undefined, { weekday:"long", month:"short", day:"numeric" });
+  const active = state.habits.filter(h => !h.archived);
+  const sched = active.filter(scheduledToday);
+  $("#heroDone").textContent = `${sched.filter(isDoneToday).length} / ${sched.length}`;
+  const best = Math.max(0, ...active.map(streakOf), 0);
+  $("#heroBest").textContent = best + " day" + (best === 1 ? "" : "s");
+  $("#xpVal").textContent = state.xp;
+  $("#lvlTag").textContent = "LVL " + state.level;
+  // profile greeting pill
+  if (state.profile && state.profile.name) {
+    $("#hpAvatar").textContent = state.profile.avatar || "👋";
+    $("#hpGreet").textContent = greetWord() + (state.profile.tag ? " · " + state.profile.tag : "");
+    $("#hpName").textContent = state.profile.name;
+  } else {
+    $("#hpAvatar").textContent = "👋";
+    $("#hpGreet").textContent = "Welcome";
+    $("#hpName").textContent = "Set up profile";
+  }
+}
+
+function renderHabits(){
+  const list = $("#habitList");
+  list.innerHTML = "";
+  const t = todayStr();
+  const todays = state.habits.slice().sort((a,b)=>(a.order??0)-(b.order??0)).filter(h => !h.archived);
+
+  if (!todays.length) {
+    const parked = state.habits.length;
+    list.innerHTML = parked
+      ? `<div class="card" style="text-align:center;padding:34px">
+          <div style="font-size:44px">🗄</div><h2>Everything's archived</h2>
+          <p class="muted" style="font-weight:600;margin-top:6px">All ${parked} habit${parked === 1 ? " is" : "s are"} parked — restore any of them in Settings → 🗄 Archived habits. Nothing was lost.</p></div>`
+      : `<div class="card" style="text-align:center;padding:34px">
+          <div style="font-size:44px">🌱</div><h2>No habits yet!</h2>
+          <p class="muted" style="font-weight:600;margin-top:6px">Add your first habit below — let's grow something great.</p></div>`;
+    return;
+  }
+
+  for (const h of todays) {
+    const done = isDoneToday(h);
+    const sched = scheduledToday(h);
+    const st = streakOf(h);
+    const el = document.createElement("div");
+    el.className = "habit" + (done ? " pop" : "");
+    el.style.setProperty("--hcol", h.color || "#ff5e7e");
+
+    // mini week (Mon-Sun)
+    const monday = new Date(); monday.setDate(monday.getDate() - ((new Date().getDay() + 6) % 7));
+    const wk = Array.from({length:7}, (_,i)=>{ const d = new Date(monday); d.setDate(monday.getDate()+i); return todayStr(d); });
+    const wkHtml = `<div class="miniweek">${wk.map((ds, wi) =>
+      `<span class="${h.days.includes(ds) ? "y" : ""}">${"MTWTFSS"[wi]}</span>`).join("")}</div>`;
+
+    el.innerHTML = `
+      <button class="checkbox ${done ? "done" : ""}" title="Toggle today" aria-label="toggle ${h.name}">${done ? "✓" : ""}</button>
+      <span class="hemoji">${h.emoji || "⭐"}</span>
+      <div style="min-width:0">
+        <div class="hname">${esc(h.name)}</div>
+        <div class="hsub">${done ? "Done today — gorgeous. ✨" : sched ? "Scheduled today" : "Rest day 😴"}</div>
+        ${wkHtml}
+      </div>
+      <div class="rowbtns">
+        <span class="tag" title="Total completions">${h.days.length}× total</span>
+        ${h.freezes ? `<span class="tag" title="Streak freezes — they protect a missed day">❄️ ${h.freezes}</span>` : ""}
+        <span class="streak ${st >= 3 ? "hot" : ""}">🔥 ${st}</span>
+        <button class="iconbtn up" title="Move up">↑</button>
+        <button class="iconbtn down" title="Move down">↓</button>
+        <button class="iconbtn edit" title="Edit / note">✏️</button>
+      </div>`;
+
+    el.querySelector(".checkbox").onclick = () => toggleHabit(h.id, el);
+    el.querySelector(".edit").onclick = () => openEditor(h.id);
+    el.querySelector(".up").onclick = () => move(h.id, -1);
+    el.querySelector(".down").onclick = () => move(h.id, 1);
+    list.appendChild(el);
+  }
+}
+
+function toggleHabit(id, el){
+  const h = habitById(id); if (!h) return;
+  const t = todayStr();
+  const i = h.days.indexOf(t);
+  if (i >= 0) {
+    h.days.splice(i, 1);
+    addXP(-5);
+    toast("Unchecked — no worries, tomorrow's fresh", "🌤");
+  } else {
+    h.days.push(t);
+    el && el.classList.add("pop");
+    addXP(10);
+    const st = streakOf(h);
+    if (st > 1) toast(`${h.emoji||"⭐"} ${esc(h.name)} — ${st} day streak! 🔥`, "🔥");
+    else toast(`${h.emoji||"⭐"} ${esc(h.name)} — nice! +10 XP`, "✅");
+    confetti(60);
+    const sched = state.habits.filter(scheduledToday);
+    if (sched.length && sched.every(isDoneToday)) { setTimeout(()=>{ confetti(160); toast("PERFECT DAY! Everything checked 🌟", "🌟"); }, 500); }
+    // milestone streak hype
+    if ([7, 30, 100, 365].includes(st)) setTimeout(()=>{ confetti(200); toast(`${st}-day streak on ${h.name}! You're unstoppable 🚀`, "👑"); }, 900);
+    applyFreezes();
+  }
+  save(); render(); checkAwards();
+}
+
+function move(id, dir){
+  const i = state.habits.findIndex(h => h.id === id);
+  let j = i + dir;
+  while (j >= 0 && j < state.habits.length && state.habits[j] && state.habits[j].archived) j += dir;  // step over parked habits
+  if (j < 0 || j >= state.habits.length) return;
+  const [h] = state.habits.splice(i, 1);
+  state.habits.splice(j, 0, h);
+  state.habits.forEach((hh, k) => hh.order = k);
+  save(); render();
+}
+
+/* ---------------- editor modal ---------------- */
+function openEditor(id){
+  editing = habitById(id); if (!editing) return;
+  editingNoteDate = todayStr();
+  $("#editTitle").textContent = `Edit “${editing.name}”` + (editing.archived ? " · 🗄 archived" : "");
+  $("#editName").value = editing.name;
+  $("#editNote").value = (editing.notes || {})[editingNoteDate] || "";
+  buildEmojiGrid(); buildColorGrid(); buildSchedSeg();
+  $("#archiveHabit").textContent = editing.archived ? "♻️ Restore" : "🗄 Archive";
+  $("#editOverlay").classList.remove("hidden");
+}
+function buildEmojiGrid(){
+  const g = $("#emojiGrid"); g.innerHTML = "";
+  EMOJIS.forEach(e => {
+    const b = document.createElement("button");
+    b.className = "chip" + (editing.emoji === e ? " on" : "");
+    b.textContent = e;
+    b.onclick = () => { editing.emoji = e; buildEmojiGrid(); };
+    g.appendChild(b);
+  });
+}
+function buildColorGrid(){
+  const g = $("#colorGrid"); g.innerHTML = "";
+  COLORS.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "swatch" + (editing.color === c ? " on" : "");
+    b.style.background = c;
+    b.onclick = () => { editing.color = c; buildColorGrid(); };
+    g.appendChild(b);
+  });
+}
+function buildSchedSeg(){
+  const seg = $("#schedSeg"); 
+  editing.sched = editing.sched || [0,1,2,3,4,5,6];
+  $$("#schedSeg button").forEach(b => {
+    b.classList.toggle("on", editing.sched.includes(+b.dataset.d));
+    b.onclick = () => {
+      const d = +b.dataset.d;
+      const at = editing.sched.indexOf(d);
+      if (at >= 0) { if (editing.sched.length > 1) editing.sched.splice(at, 1); } else editing.sched.push(d);
+      buildSchedSeg();
+    };
+  });
+}
+$("#editCancel").onclick = () => { $("#editOverlay").classList.add("hidden"); editing = null; render(); };
+$("#editSave").onclick = () => {
+  if (!editing) return;
+  const name = $("#editName").value.trim();
+  if (name) editing.name = name;
+  const note = $("#editNote").value.trim();
+  editing.notes = editing.notes || {};
+  const before = editing.notes[editingNoteDate] || "";
+  if (note) { editing.notes[editingNoteDate] = note; if (!before) { addXP(4); } }
+  else delete editing.notes[editingNoteDate];
+  save(); $("#editOverlay").classList.add("hidden"); editing = null; render(); checkAwards();
+  toast("Saved ✨");
+};
+$("#deleteHabit").onclick = () => {
+  if (!editing) return;
+  if (!confirm(`Delete “${editing.name}” and its history? (Export first if you want a backup!)`)) return;
+  state.habits = state.habits.filter(h => h.id !== editing.id);
+  state.habits.forEach((h,i)=>h.order=i);
+  save(); $("#editOverlay").classList.add("hidden"); editing = null; render();
+  toast("Habit deleted", "🗑");
+};
+$("#archiveHabit").onclick = () => {
+  if (!editing) return;
+  editing.archived = !editing.archived;
+  const nowArchived = editing.archived;
+  save(); $("#editOverlay").classList.add("hidden"); editing = null; render();
+  toast(nowArchived ? "Archived — history saved, Today is tidy 🗄" : "Restored — welcome back! ♻️", nowArchived ? "🗄" : "♻️");
+};
+
+/* ---------------- add habit ---------------- */
+function addHabit(){
+  const name = $("#newName").value.trim();
+  if (!name) { toast("Give it a name first!", "✏️"); return; }
+  const emoji = $("#newEmoji").value.trim() || "⭐";
+  const color = newColorSel || COLORS[state.habits.length % COLORS.length];
+  state.habits.push({ id: uid(), name, emoji, color, days: [], notes: {}, order: state.habits.length, sched:[0,1,2,3,4,5,6], created: todayStr() });
+  $("#newName").value = ""; $("#newEmoji").value = "";
+  save(); render();
+  toast(`Welcome, ${emoji} ${esc(name)}!`, "🌱");
+  confetti(40);
+}
+$("#addBtn").onclick = addHabit;
+
+/* add-row color picker: ✨ auto by default, or choose from the full palette */
+let newColorSel = "";
+function buildNewColors(){
+  const row = $("#newColorRow");
+  row.innerHTML = "";
+  const auto = document.createElement("button");
+  auto.className = "swatch" + (newColorSel === "" ? " on" : "");
+  auto.title = "Auto — let Spark pick";
+  auto.style.background = "linear-gradient(135deg,#ff5e7e,#ffc24b,#34d399,#06b6d4,#8b5cf6)";
+  auto.onclick = () => { newColorSel = ""; buildNewColors(); };
+  row.appendChild(auto);
+  COLORS.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "swatch" + (newColorSel === c ? " on" : "");
+    b.style.background = c;
+    b.title = c;
+    b.onclick = () => { newColorSel = (newColorSel === c ? "" : c); buildNewColors(); };
+    row.appendChild(b);
+  });
+}
+$("#newColorBtn").onclick = () => { $("#newColorRow").classList.toggle("hidden"); buildNewColors(); };
+$("#newName").addEventListener("keydown", e => { if (e.key === "Enter") addHabit(); });
+
+/* ---------------- journal ---------------- */
+function renderJournal(){
+  const q = ($("#jSearch").value || "").toLowerCase();
+  const f = $("#jFilter").value;
+  const sel = $("#jFilter");
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">All habits</option>` + state.habits.map(h =>
+    `<option value="${h.id}" ${h.id===cur?"selected":""}>${h.emoji||"⭐"} ${esc(h.name)}</option>`).join("");
+
+  const entries = [];
+  for (const h of state.habits) {
+    for (const [date, text] of Object.entries(h.notes || {})) {
+      if (f && h.id !== f) continue;
+      if (q && !(text.toLowerCase().includes(q) || h.name.toLowerCase().includes(q) || date.includes(q))) continue;
+      entries.push({ h, date, text });
+    }
+  }
+  entries.sort((a,b) => b.date.localeCompare(a.date));
+  const list = $("#jList");
+  if (!entries.length) {
+    list.innerHTML = `<p class="muted" style="font-weight:600;padding:18px 4px">No notes yet. Tap ✏️ on any habit and write a line about your day — it lands here, searchable, forever.</p>`;
+    return;
+  }
+  list.innerHTML = entries.map(e => `
+    <div class="jentry" style="--hcol:${e.h.color||'#ff5e7e'}">
+      <div class="jhead"><span>${e.h.emoji||"⭐"} ${esc(e.h.name)}</span><span class="muted">${fmtDate(e.date)}</span></div>
+      <p>${esc(e.text)}</p>
+    </div>`).join("");
+}
+$("#jSearch").oninput = renderJournal;
+$("#jFilter").onchange = renderJournal;
+function fmtDate(ds){
+  const [y,m,d] = ds.split("-").map(Number);
+  return new Date(y, m-1, d).toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric", year:"numeric"});
+}
+
+/* ---------------- stats ---------------- */
+function renderStats(){
+  const active = state.habits.filter(h => !h.archived);
+  const total = state.habits.reduce((s,h)=>s+h.days.length,0);
+  const notes = state.habits.reduce((s,h)=>s+Object.keys(h.notes||{}).length,0);
+  const best = Math.max(0, ...active.map(streakOf), 0);
+  const tiles = [
+    [total, "total check-ins"], [best, "best streak 🔥"], [notes, "journal notes"],
+    [active.length, "active habits"], [state.level, "your level"], [completionRate() + "%", "30-day rate"],
+  ];
+  $("#statTiles").innerHTML = tiles.map(([n,l]) =>
+    `<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+
+  // household board: every account on this device, side by side
+  const hh = householdRows();
+  if (hh.length < 2){
+    $("#hhBoard").innerHTML = `<p class="muted" style="font-weight:600;margin:2px 0 4px">Add another account in Settings — then everyone's streaks line up here for friendly family competition. 🏁</p>`;
+  } else {
+    $("#hhBoard").innerHTML = hh.map((r, i) => {
+      const medal = ["🥇","🥈","🥉"][i] || `${i+1}.`;
+      return `<div class="hhrow${r.you ? " you" : ""}">
+        <span class="hmedal">${medal}</span>
+        <span class="hava">${r.avatar}</span>
+        <span class="hname">${esc(r.name)}${r.you ? " <small>(you)</small>" : ""}</span>
+        <span class="htag">🔥 ${r.streak}</span>
+        <span class="htag">✅ ${r.total}</span>
+        <span class="htag">🧁 LVL ${r.level}</span>
+      </div>`;
+    }).join("");
+  }
+
+  // 30-day bars: total completions per day
+  const counts = Array.from({length:30}, (_,i)=>{
+    const d = new Date(); d.setDate(d.getDate() - (29 - i));
+    const ds = todayStr(d);
+    return state.habits.reduce((s,h)=> s + (h.days.includes(ds) ? 1 : 0), 0);
+  });
+  const mx = Math.max(1, ...counts);
+  $("#bar30").innerHTML = counts.map((c,i)=>{
+    const d = new Date(); d.setDate(d.getDate() - (29 - i));
+    return `<div class="b" style="height:${Math.max(3, Math.round(c/mx*100))}%" title="${todayStr(d)}: ${c}"><em>${c}</em></div>`;
+  }).join("");
+
+  // heatmap 26 weeks aligned to week start (Mon)
+  const start = new Date(); start.setDate(start.getDate() - (26*7 - 1));
+  // align start to Monday
+  while (start.getDay() !== 1) start.setDate(start.getDate() + 1);
+  const startDs = todayStr(start);
+  let html = "";
+  const d = new Date(start);
+  while (d <= new Date()) {
+    const ds = todayStr(d);
+    const c = state.habits.reduce((s,h)=> s + (h.days.includes(ds) ? 1 : 0), 0);
+    html += `<span class="${c>0?"on":""}" title="${ds}: ${c} completions"></span>`;
+    d.setDate(d.getDate() + 1);
+  }
+  $("#heat").innerHTML = html;
+}
+/* household board: metrics straight from each account blob — no login required */
+function householdRows(){
+  const rows = [];
+  for (const a of readIndex().accounts){
+    let blob = null;
+    try { blob = JSON.parse(localStorage.getItem(acctKey(a.id)) || "null"); } catch (e) { blob = null; }
+    if (!blob) continue;
+    const habits = (Array.isArray(blob.habits) ? blob.habits : []).filter(h => !h.archived);
+    rows.push({
+      id: a.id,
+      name: a.name || "Friend",
+      avatar: a.avatar || "👋",
+      streak: habits.reduce((m, h) => Math.max(m, streakOf(h)), 0),
+      total: habits.reduce((s, h) => s + (h.days || []).length, 0),
+      level: blob.level || 1,
+      you: a.id === accountId
+    });
+  }
+  rows.sort((x, y) => (y.streak - x.streak) || (y.total - x.total) || (y.level - x.level));
+  return rows;
+}
+function completionRate(){
+  let done = 0, poss = 0;
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = todayStr(d);
+    const dow = d.getDay();
+    for (const h of state.habits) {
+      if (h.archived) continue;
+      const created = h.created || "2000-01-01";
+      if (ds < created) continue;
+      if (!h.sched || h.sched.length === 7 || h.sched.includes(dow)) { poss++; if (h.days.includes(ds)) done++; }
+    }
+  }
+  return poss ? Math.round(done / poss * 100) : 0;
+}
+
+/* ---------------- awards ---------------- */
+function renderAwards(){
+  $("#achGrid").innerHTML = ACH.map(a => {
+    const won = !!state.won[a.id];
+    return `<div class="ach ${won?"won":""}">
+      <div class="medal">${a.medal}</div>
+      <div><b>${a.name}</b><small>${won ? "Won " + fmtDate(state.won[a.id]) : a.desc}</small></div>
+    </div>`;
+  }).join("");
+}
+
+/* ---------------- settings ---------------- */
+function renderSettings(){
+  renderProfileCard();
+  renderSecurityCard();
+  renderArchive();
+  $$("#themeSeg button").forEach(b => {
+    b.classList.toggle("on", b.dataset.t === state.theme);
+    b.onclick = () => { state.theme = b.dataset.t; applyTheme(); save(); renderSettings(); };
+  });
+  $$("#fxSeg button").forEach(b => {
+    b.classList.toggle("on", b.dataset.fx === state.fx);
+    b.onclick = () => { state.fx = b.dataset.fx; save(); renderSettings(); toast(b.dataset.fx==="off"?"Celebrations off 🤫":"Celebrations on 🎉","🎛"); };
+  });
+}
+function applyTheme(){
+  document.documentElement.dataset.theme = state.theme === "candy" ? "" : state.theme;
+  if (accountId) { try { localStorage.setItem(UI_KEY, JSON.stringify({ theme: state.theme })); } catch (e) {} }
+}
+function applyUiTheme(){
+  try {
+    const ui = JSON.parse(localStorage.getItem(UI_KEY)) || {};
+    document.documentElement.dataset.theme = (ui.theme && ui.theme !== "candy") ? ui.theme : "";
+  } catch (e) {}
+}
+
+/* ---- archived habits card ---- */
+function renderArchive(){
+  const box = $("#archList"); if (!box) return;
+  const parked = state.habits.filter(h => h.archived).sort((a,b)=>(a.order??0)-(b.order??0));
+  if (!parked.length){
+    box.innerHTML = `<p class="muted" style="font-weight:600">Nothing archived. Tap ✏️ on a habit → 🗄 Archive to park it without losing its history.</p>`;
+    return;
+  }
+  box.innerHTML = "";
+  for (const h of parked){
+    const row = document.createElement("div");
+    row.className = "setrow";
+    row.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <span style="font-size:22px">${h.emoji || "⭐"}</span>
+        <div style="min-width:0">
+          <b>${esc(h.name)}</b>
+          <small>${h.days.length} check-in${h.days.length === 1 ? "" : "s"} · streak paused at 🔥 ${streakOf(h)} — archived, not forgotten</small>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn small ghost arc-edit">✏️ Edit</button>
+        <button class="btn small arc-restore">♻️ Restore</button>
+      </div>`;
+    row.querySelector(".arc-edit").onclick = () => openEditor(h.id);
+    row.querySelector(".arc-restore").onclick = () => {
+      h.archived = false; save(); renderArchive(); render();
+      toast(`${h.emoji || "⭐"} ${esc(h.name)} is back on Today! ♻️`, "♻️");
+    };
+    box.appendChild(row);
+  }
+}
+
+/* ---------------- export / import / wipe ---------------- */
+$("#exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `spark-backup-${todayStr()}.spark.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Backup downloaded 📦", "⬇️");
+};
+$("#importBtn").onclick = () => $("#importFile").click();
+$("#importFile").onchange = e => {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d || !Array.isArray(d.habits)) throw new Error("bad file");
+      // merge by ID — the anti-duplicate guarantee
+      let merged = 0, added = 0;
+      for (const inc of d.habits) {
+        if (!inc || !inc.id) continue;
+        const ex = habitById(inc.id);
+        if (ex) {
+          const days = new Set([...ex.days, ...(inc.days||[])]);
+          ex.days = Array.from(days).sort();
+          ex.notes = Object.assign({}, inc.notes, ex.notes);
+          merged++;
+        } else {
+          state.habits.push({ notes:{}, days:[], sched:[0,1,2,3,4,5,6], created: todayStr(), order: state.habits.length, ...inc });
+          added++;
+        }
+      }
+      state.habits.forEach((h,i)=>h.order=i);
+      state.xp = Math.max(state.xp, d.xp||0);
+      state.level = Math.max(state.level, d.level||1);
+      state.won = Object.assign({}, d.won, state.won);
+      if (d.profile && (!state.profile || !state.profile.name)) {
+        state.profile = Object.assign({ name:"", avatar:"👋", tag:"", joined: todayStr() }, d.profile);
+      }
+      save(); syncIndexFromProfile(); render(); checkAwards();
+      toast(`Imported — ${added} new, ${merged} merged. Zero duplicates. 🧩`, "✅");
+    } catch (err) { toast("That file didn't look like a Spark backup 😕", "⚠️"); }
+  };  r.readAsText(file);
+  e.target.value = "";
+};
+
+/* ---- CSV export: every check-in, spreadsheet-ready ---- */
+function csvCell(s){ s = String(s ?? ""); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+$("#csvBtn").onclick = () => {
+  const rows = [["date", "habit", "emoji", "color"]];
+  const hs = state.habits.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  for (const h of hs) for (const ds of [...(h.days || [])].sort()) rows.push([ds, h.name, h.emoji || "", h.color || ""]);
+  const csv = rows.map(r => r.map(csvCell).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `spark-habits-${todayStr()}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast(`CSV downloaded — ${rows.length - 1} check-in${rows.length - 1 === 1 ? "" : "s"} 📊`, "⬇️");
+};
+
+/* ---- whole-device backup: every account (index + blobs) in one file ---- */
+function deviceBackup(){
+  const idx = readIndex();
+  const blobs = {};
+  for (const a of idx.accounts){
+    try { blobs[a.id] = JSON.parse(localStorage.getItem(acctKey(a.id)) || "null") || blankState(); } catch (e){ blobs[a.id] = blankState(); }
+  }
+  return { app: "spark", kind: "device", version: 1, exported: todayStr(), accounts: idx.accounts, blobs };
+}
+$("#devExportBtn").onclick = () => {
+  const b = deviceBackup();
+  const blob = new Blob([JSON.stringify(b, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `spark-device-${todayStr()}.spark.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast(`Device backup saved — ${b.accounts.length} account${b.accounts.length === 1 ? "" : "s"} 🗃`, "⬇️");
+};
+$("#devImportBtn").onclick = () => $("#devImportFile").click();
+$("#devImportFile").onchange = e => {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (d && Array.isArray(d.habits) && d.kind !== "device") throw new Error("single-account file");
+      if (!d || d.kind !== "device" || !Array.isArray(d.accounts) || !d.blobs || typeof d.blobs !== "object") throw new Error("bad file");
+      // same merge-by-ID promise as Import — never duplicates
+      const mergeInto = (local, inc) => {
+        const seen = {};
+        for (const h of (local.habits || [])) if (h && h.id) seen[h.id] = h;
+        let added = 0, merged = 0;
+        for (const h of (inc.habits || [])){
+          if (!h || !h.id) continue;
+          if (seen[h.id]){
+            const ex = seen[h.id];
+            ex.days = Array.from(new Set([...(ex.days || []), ...(h.days || [])])).sort();
+            ex.notes = Object.assign({}, h.notes, ex.notes);
+            merged++;
+          } else {
+            local.habits.push(Object.assign({ notes:{}, days:[], sched:[0,1,2,3,4,5,6], created: todayStr(), order: local.habits.length }, h));
+            added++;
+          }
+        }
+        local.habits.forEach((h, i) => h.order = i);
+        local.xp = Math.max(local.xp || 0, inc.xp || 0);
+        local.level = Math.max(local.level || 1, inc.level || 1);
+        local.won = Object.assign({}, inc.won, local.won);
+        if (inc.profile && (!local.profile || !local.profile.name)) local.profile = Object.assign({ name:"", avatar:"👋", tag:"", joined: todayStr() }, inc.profile);
+        return { added, merged };
+      };
+      const idx = readIndex();
+      let restored = 0, mergedAccounts = 0;
+      for (const inc of d.accounts){
+        if (!inc || !inc.id) continue;
+        const blob = d.blobs[inc.id] || blankState();
+        const ex = idx.accounts.find(a => a.id === inc.id);
+        if (ex){
+          let local;
+          try { local = Object.assign(blankState(), JSON.parse(localStorage.getItem(acctKey(inc.id)) || "{}")); } catch (err){ local = blankState(); }
+          mergeInto(local, blob);
+          localStorage.setItem(acctKey(inc.id), JSON.stringify(local));
+          if (inc.id === accountId) state = local;
+          mergedAccounts++;
+        } else {
+          const fresh = blankState(); mergeInto(fresh, blob);
+          localStorage.setItem(acctKey(inc.id), JSON.stringify(fresh));
+          idx.accounts.push(Object.assign({ hasPin: false, salt: "", hash: "", hint: "", created: todayStr() }, inc));
+          restored++;
+        }
+      }
+      writeIndex(idx);
+      if (accountId){ normalizeState(); save(); syncIndexFromProfile(); render(); checkAwards(); }
+      else renderLogin();
+      toast(`Restored — ${restored} account${restored === 1 ? "" : "s"} back, ${mergedAccounts} merged. Zero duplicates. 🧩`, "♻️");
+    } catch (err) {
+      toast(err && err.message === "single-account file" ? "That's a single-account backup — use Import instead 🤔" : "That file didn't look like a Spark device backup 😕", "⚠️");
+    }
+  };
+  r.readAsText(file);
+  e.target.value = "";
+};
+
+$("#wipeBtn").onclick = () => {
+  if (!confirm("Wipe ALL Spark data from this device — every account, habit and note? This cannot be undone.\n(Tip: export a backup first!)")) return;
+  Object.keys(localStorage).filter(k => k.startsWith("spark.")).forEach(k => localStorage.removeItem(k));
+  accountId = null;
+  state = blankState();
+  document.documentElement.dataset.theme = "";
+  render();
+  toast("All wiped. Clean slate! 🧼", "✨");
+  showLogin();
+  openOnboarding("new");
+};
+
+/* ============================================================
+   Accounts, login & PIN — local accounts on this device only.
+   spark.accounts.v1 → who exists · spark.acct.<id> → their data
+   spark.session.v1  → stay signed in · spark.ui.v1 → login theme
+   ============================================================ */
+const acctKey = id => "spark.acct." + id;
+let pinCtx = null;   // {mode:"unlock"|"set"|"change"|"remove", account, step, first, buffer}
+let pinFails = 0, pinLockUntil = 0;
+
+function readIndex(){ try { return JSON.parse(localStorage.getItem(INDEX_KEY)) || { accounts: [] }; } catch (e) { return { accounts: [] }; } }
+function writeIndex(idx){ try { localStorage.setItem(INDEX_KEY, JSON.stringify(idx)); } catch (e) {} }
+function acctEntry(id){ return readIndex().accounts.find(a => a.id === id) || null; }
+function syncIndexFromProfile(){
+  if (!accountId) return;
+  const idx = readIndex(); const a = idx.accounts.find(x => x.id === accountId); if (!a) return;
+  if (state.profile){ a.name = state.profile.name || a.name; a.avatar = state.profile.avatar || a.avatar; }
+  writeIndex(idx);
+}
+
+/* cyrb53-style hash — a friendly local lock, not bank-grade security */
+function hashPin(pin, salt){
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  const s = (salt || "") + "|" + pin + "|spark";
+  for (let i = 0; i < s.length; i++){
+    const ch = s.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+function migrateLegacy(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const idx = readIndex();
+    if (idx.accounts.length) { localStorage.removeItem(LS_KEY); return; }
+    const d = JSON.parse(raw);
+    const p = d && d.profile;
+    const id = "a_" + uid();
+    idx.accounts.push({ id, name: (p && p.name) || "My habits", avatar: (p && p.avatar) || "⚡", hasPin: false, salt: "", hash: "", created: todayStr() });
+    writeIndex(idx);
+    localStorage.setItem(acctKey(id), raw);
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ id, since: Date.now() }));
+    localStorage.removeItem(LS_KEY);
+  } catch (e) { console.warn("Spark: legacy migration failed", e); }
+}
+
+function signIn(id, opts = {}){
+  const entry = acctEntry(id); if (!entry) return;
+  accountId = id;
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ id, since: Date.now() })); } catch (e) {}
+  const idx = readIndex();                       // most-recent-first on the login screen
+  idx.accounts = [entry, ...idx.accounts.filter(a => a.id !== id)];
+  writeIndex(idx);
+  state = blankState(); loadState(); bumpActivity();
+  applyTheme();
+  newColorSel = "";                               // color pick is per-session, never leaks across accounts
+  const ncr = $("#newColorRow"); if (ncr) ncr.classList.add("hidden");
+  $("#loginOverlay").classList.add("hidden");
+  closePin(true);
+  document.body.classList.remove("locked");
+  render(); checkAwards();
+  if (!opts.silent){
+    const nm = (state.profile && state.profile.name) || entry.name;
+    toast(`Welcome back, ${esc(nm)}! 👋`, (state.profile && state.profile.avatar) || entry.avatar || "👋");
+  }
+}
+function signOut(){
+  save();
+  accountId = null;
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  state = blankState();
+  showLogin();
+  render();
+}
+function showLogin(){
+  renderLogin();
+  $("#loginOverlay").classList.remove("hidden");
+  document.body.classList.add("locked");
+}
+function renderLogin(){
+  const g = $("#loginAccounts"); g.innerHTML = "";
+  for (const a of readIndex().accounts){
+    const b = document.createElement("button");
+    b.className = "acctcard";
+    b.innerHTML = `<span class="big">${a.avatar || "👋"}</span><b>${esc(a.name)}</b><span class="lock">${a.hasPin ? "🔒 PIN protected" : "tap to open"}</span>`;
+    b.onclick = () => { if (a.hasPin) openPin({ mode: "unlock", account: a }); else signIn(a.id); };
+    g.appendChild(b);
+  }
+  const add = document.createElement("button");
+  add.className = "acctcard add";
+  add.innerHTML = `<span class="big">＋</span><b>New account</b><span class="lock">a fresh start ✨</span>`;
+  add.onclick = () => { $("#loginOverlay").classList.add("hidden"); openOnboarding("new"); };
+  g.appendChild(add);
+}
+
+/* ---- PIN keypad ---- */
+function openPin(ctx){
+  pinCtx = { ...ctx, buffer: "", step: 0, first: "" };
+  $("#pinCancel").textContent = ctx.mode === "unlock" ? "← Back to accounts" : "Cancel";
+  $("#pinForgot").classList.toggle("hidden", ctx.mode !== "unlock");
+  $("#pinRecoverBtns").classList.add("hidden");
+  drawPin();
+  $("#pinOverlay").classList.remove("hidden");
+}
+function closePin(){
+  pinCtx = null;
+  $("#pinOverlay").classList.add("hidden");
+}
+function pinStepText(){
+  const m = pinCtx.mode, s = pinCtx.step, nm = pinCtx.account ? pinCtx.account.name : "";
+  if (m === "unlock") return ["Enter your PIN", `unlocking ${nm} ${pinCtx.account.avatar || "👋"}`];
+  if (m === "set")    return s === 0 ? ["Choose a PIN", "4 digits — you'll confirm it next"] : ["Confirm your PIN", "type the same 4 digits again"];
+  if (m === "change") return s === 0 ? ["Enter your current PIN", `unlocking ${nm}`] : s === 1 ? ["Choose a new PIN", "4 digits"] : ["Confirm your new PIN", "type it once more"];
+  if (m === "remove") return ["Enter your PIN", `to remove the lock on ${nm}`];
+  if (m === "recover") return ["Forgot your PIN?", `Resetting removes the lock on ${nm} — habits, XP and notes all stay.`];
+  return ["Enter PIN", ""];
+}
+function drawPin(){
+  if (!pinCtx) return;
+  const t = pinStepText();
+  $("#pinTitle").textContent = t[0];
+  $("#pinSub").textContent = t[1];
+  const recovering = pinCtx.mode === "recover";
+  $("#pinDots").classList.toggle("hidden", recovering);
+  $("#pinPad").classList.toggle("hidden", recovering);
+  $("#pinRecoverBtns").classList.toggle("hidden", !recovering);
+  $("#pinForgot").classList.toggle("hidden", recovering || pinCtx.mode !== "unlock");
+  const dots = $("#pinDots");
+  dots.classList.remove("shake");
+  Array.from(dots.children).forEach((d, i) => d.classList.toggle("on", i < pinCtx.buffer.length));
+  const pad = $("#pinPad"); pad.innerHTML = "";
+  for (const k of ["1","2","3","4","5","6","7","8","9","","0","⌫"]){
+    if (k === "") { pad.appendChild(document.createElement("div")); continue; }
+    const b = document.createElement("button");
+    b.textContent = k; b.onclick = () => pinKey(k);
+    pad.appendChild(b);
+  }
+}
+function pinKey(k){
+  if (!pinCtx) return;
+  if (pinCtx.mode === "recover") return;
+  if (Date.now() < pinLockUntil){ $("#pinSub").textContent = `Too many tries — wait ${Math.ceil((pinLockUntil - Date.now()) / 1000)}s ⏳`; return; }
+  if (k === "⌫") { pinCtx.buffer = pinCtx.buffer.slice(0, -1); drawPin(); return; }
+  if (pinCtx.buffer.length >= 4) return;
+  pinCtx.buffer += k;
+  drawPin();
+  if (pinCtx.buffer.length === 4) setTimeout(pinSubmit, 160);
+}
+function pinShake(msg){
+  $("#pinDots").classList.add("shake");
+  pinFails++;
+  if (pinFails >= 3){ pinFails = 0; pinLockUntil = Date.now() + 15000; msg = "Too many tries — wait 15 seconds ⏳"; }
+  if (msg) $("#pinSub").textContent = msg;
+  pinCtx.buffer = "";
+  setTimeout(drawPin, 450);
+}
+function pinSubmit(){
+  if (!pinCtx) return;
+  const pin = pinCtx.buffer, m = pinCtx.mode, acct = pinCtx.account;
+  const entry = acct ? acctEntry(acct.id) : null;
+  const ok = e => !!(e && e.hasPin && e.hash && e.hash === hashPin(pin, e.salt));
+  const savePin = (id, p) => {
+    const idx = readIndex(); const e2 = idx.accounts.find(x => x.id === id); if (!e2) return;
+    e2.salt = uid() + uid(); e2.hash = hashPin(p, e2.salt); e2.hasPin = true;
+    writeIndex(idx);
+  };
+  if (m === "unlock"){
+    if (ok(entry)) { pinFails = 0; const id = acct.id; closePin(); signIn(id); }
+    else pinShake(entry && entry.hint ? `Wrong PIN — hint: ${entry.hint}` : "Wrong PIN — try again");
+  } else if (m === "remove"){
+    if (ok(entry)){
+      pinFails = 0;
+      const idx = readIndex(); const e2 = idx.accounts.find(x => x.id === acct.id);
+      if (e2) { e2.hasPin = false; e2.hash = ""; e2.salt = ""; e2.hint = ""; writeIndex(idx); }
+      closePin(); renderSettings(); toast("PIN removed — this account unlocks with a tap 🔓", "🔑");
+    } else pinShake("Wrong PIN — try again");
+  } else if (m === "change"){
+    if (pinCtx.step === 0){
+      if (ok(entry)) { pinFails = 0; pinCtx.step = 1; pinCtx.buffer = ""; drawPin(); } else pinShake("Wrong PIN — try again");
+    } else if (pinCtx.step === 1){ pinCtx.first = pin; pinCtx.step = 2; pinCtx.buffer = ""; drawPin(); }
+    else if (pin === pinCtx.first){ pinFails = 0; savePin(acct.id, pin); closePin(); renderSettings(); toast("PIN updated 🔒", "🔑"); }
+    else { pinCtx.step = 1; pinShake("Didn't match — pick a new PIN"); }
+  } else if (m === "set"){
+    if (pinCtx.step === 0){ pinCtx.first = pin; pinCtx.step = 1; pinCtx.buffer = ""; drawPin(); }
+    else if (pin === pinCtx.first){ pinFails = 0; savePin(acct.id, pin); closePin(); renderSettings(); toast("PIN set — this account will ask for it at login 🔒", "🔑"); }
+    else { pinCtx.step = 0; pinShake("Didn't match — let's start over"); }
+  }
+}
+$("#pinCancel").onclick = () => closePin();
+$("#pinForgot").onclick = () => { if (pinCtx && pinCtx.mode === "unlock"){ pinCtx.mode = "recover"; pinCtx.buffer = ""; drawPin(); } };
+$("#pinNeverBtn").onclick = () => { if (pinCtx && pinCtx.mode === "recover"){ pinCtx.mode = "unlock"; pinCtx.buffer = ""; drawPin(); } };
+$("#pinResetBtn").onclick = () => {
+  if (!pinCtx || pinCtx.mode !== "recover") return;
+  pinFails = 0;
+  const id = pinCtx.account.id;
+  const idx = readIndex(); const e = idx.accounts.find(x => x.id === id);
+  if (e){ e.hasPin = false; e.hash = ""; e.salt = ""; e.hint = ""; writeIndex(idx); }
+  closePin(); signIn(id);
+  toast("PIN reset — set a new one in Settings 🔑", "🔑");
+};
+$("#pinOverlay").addEventListener("click", e => { if (e.target === $("#pinOverlay")) closePin(); });
+document.addEventListener("keydown", e => {
+  if (!pinCtx) return;
+  if (/^[0-9]$/.test(e.key)) pinKey(e.key);
+  else if (e.key === "Backspace") pinKey("⌫");
+  else if (e.key === "Escape") closePin();
+});
+
+/* ---- settings: accounts & security card ---- */
+function renderSecurityCard(){
+  const st = $("#pinStatus"), btns = $("#pinBtns"), cnt = $("#acctCount");
+  if (!st || !btns) return;
+  const e = accountId ? acctEntry(accountId) : null;
+  if (!e) { st.textContent = ""; btns.innerHTML = ""; return; }
+  if (e.hasPin){
+    st.textContent = "🔒 This account asks for its 4-digit PIN at login. (A friendly lock — not bank-grade.)";
+    btns.innerHTML = `<button id="pinChangeBtn" class="btn small ghost">Change PIN</button><button id="pinRemoveBtn" class="btn small ghost" style="color:#e11d48">Remove</button>`;
+    $("#pinChangeBtn").onclick = () => openPin({ mode: "change", account: e });
+    $("#pinRemoveBtn").onclick = () => openPin({ mode: "remove", account: e });
+  } else {
+    st.textContent = "No PIN — anyone on this device can open this account with a tap.";
+    btns.innerHTML = `<button id="pinSetBtn" class="btn small">Set PIN</button>`;
+    $("#pinSetBtn").onclick = () => openPin({ mode: "set", account: e });
+  }
+  const hr = $("#hintRow");
+  if (hr){
+    hr.classList.toggle("hidden", !e.hasPin);
+    if (e.hasPin){
+      $("#hintInput").value = e.hint || "";
+      $("#hintSaveBtn").onclick = () => {
+        const v = $("#hintInput").value.trim();
+        const idx = readIndex(); const e2 = idx.accounts.find(x => x.id === accountId);
+        if (e2){ e2.hint = v; writeIndex(idx); }
+        toast(v ? "Hint saved 💭" : "Hint cleared", "💭");
+      };
+    }
+  }
+  $$("#lockSeg button").forEach(b => {
+    b.classList.toggle("on", (+b.dataset.m) === (state.autolock || 0));
+    b.onclick = () => {
+      state.autolock = +b.dataset.m;
+      save(); bumpActivity();
+      renderSecurityCard();
+      toast(state.autolock === 0 ? "Auto-lock off 🤙" : `Auto-lock: ${state.autolock} min of inactivity ⏱`, "⏱");
+    };
+  });
+  const n = readIndex().accounts.length;
+  if (cnt) cnt.textContent = `${n} account${n === 1 ? "" : "s"} on this device — each with its own habits, XP, journal & awards.`;
+}
+$("#logoutBtn").onclick = () => signOut();
+$("#switchBtn").onclick = () => signOut();
+$("#addAcctBtn").onclick = () => openOnboarding("new");
+$("#deleteAcctBtn").onclick = () => {
+  if (!accountId) return;
+  const e = acctEntry(accountId);
+  const nm = (state.profile && state.profile.name) || (e && e.name) || "this account";
+  if (!confirm(`Delete “${nm}” and ALL its habits, notes, XP & awards?\nOther accounts on this device are safe. (Export first if unsure!)`)) return;
+  const idx = readIndex();
+  idx.accounts = idx.accounts.filter(a => a.id !== accountId);
+  writeIndex(idx);
+  try { localStorage.removeItem(acctKey(accountId)); } catch (err) {}
+  try { localStorage.removeItem(SESSION_KEY); } catch (err) {}
+  accountId = null;
+  state = blankState();
+  if (!readIndex().accounts.length){
+    render(); showLogin(); openOnboarding("new");
+  } else {
+    signOut();
+  }
+  toast("Account deleted", "🗑");
+};
+
+/* ---------------- profile ---------------- */
+
+/* ---------------- profile ---------------- */
+let onbAvatar = "🦊";
+let onbThemePick = null;   // null = keep current theme
+let onbMode = "create";    // create | edit
+
+function openOnboarding(mode){   // "new" = create account · "edit" = tweak current profile
+  if (mode === "create") mode = "new";
+  onbMode = mode;
+  const p = mode === "new" ? {} : (state.profile || {});
+  onbAvatar = mode === "new" ? AVATARS[Math.floor(Math.random()*AVATARS.length)]
+            : (p.avatar || AVATARS[Math.floor(Math.random()*AVATARS.length)]);
+  onbThemePick = null;
+  const nAccts = readIndex().accounts.length;
+  $("#onbTitle").innerHTML = mode === "edit" ? `Your <span class="gradtext">profile</span>` : `New <span class="gradtext">account</span>`;
+  $("#onbSub").textContent = mode === "edit"
+    ? "Tweak how Spark greets you. Still 100% on this device."
+    : (accountId ? "Set up another Spark space on this device." : "Create your account — it stays on this device, always.");
+  $("#onbName").value = mode === "new" ? "" : (p.name && p.name !== "Friend" ? p.name : (p.name || ""));
+  $("#onbTag").value = p.tag || "";
+  $("#onbJoined").textContent = (mode === "edit" && p.joined) ? `🗓 Sparking since ${fmtDate(p.joined)}` : "";
+  $("#onbGo").textContent = mode === "edit" ? "Save profile 💾" : "Create account 🚀";
+  $("#onbSkip").textContent = mode === "edit" ? "Close" : (accountId ? "Cancel" : (nAccts ? "← Back to accounts" : "Skip — I'll explore first"));
+  buildAvatarGrid(); buildOnbThemes();
+  $("#onbOverlay").classList.remove("hidden");
+  setTimeout(() => $("#onbName").focus(), 80);
+}
+function buildAvatarGrid(){
+  const g = $("#onbAvatars"); g.innerHTML = "";
+  AVATARS.forEach(a => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "avatarbig" + (onbAvatar === a ? " on" : "");
+    b.textContent = a;
+    b.onclick = () => { onbAvatar = a; buildAvatarGrid(); };
+    g.appendChild(b);
+  });
+}
+function buildOnbThemes(){
+  $$("#onbThemes button").forEach(b => {
+    b.classList.toggle("on", onbThemePick ? b.dataset.t === onbThemePick : b.dataset.t === state.theme);
+    b.onclick = () => { onbThemePick = b.dataset.t; buildOnbThemes(); };
+  });
+}
+function saveOnboarding(){
+  const name = $("#onbName").value.trim();
+  const tag = $("#onbTag").value.trim();
+  if (onbMode === "new"){
+    // create a whole new account with its own data blob
+    const prof = { name: name || "Friend", avatar: onbAvatar, tag, joined: todayStr() };
+    const id = "a_" + uid();
+    const fresh = blankState();
+    fresh.profile = prof;
+    if (onbThemePick) fresh.theme = onbThemePick;
+    const idx = readIndex();
+    idx.accounts.unshift({ id, name: prof.name, avatar: prof.avatar, hasPin: false, salt: "", hash: "", created: todayStr() });
+    writeIndex(idx);
+    try { localStorage.setItem(acctKey(id), JSON.stringify(fresh)); } catch (e) {}
+    $("#onbOverlay").classList.add("hidden");
+    signIn(id);
+    confetti(150);
+    toast(`Welcome aboard, ${esc(prof.name)}! ${prof.avatar}`, "🎉");
+    return;
+  }
+  const isNew = !state.profile;
+  state.profile = {
+    name: name || "Friend",
+    avatar: onbAvatar,
+    tag,
+    joined: (state.profile && state.profile.joined) || todayStr(),
+  };
+  if (onbThemePick && onbThemePick !== state.theme) { state.theme = onbThemePick; applyTheme(); }
+  save(); syncIndexFromProfile();
+  $("#onbOverlay").classList.add("hidden");
+  render(); checkAwards();
+  if (isNew) { confetti(150); toast(`Welcome aboard, ${esc(state.profile.name)}! ${state.profile.avatar}`, "🎉"); }
+  else toast("Profile saved ✨", "👤");
+}
+$("#onbGo").onclick = saveOnboarding;
+$("#onbName").addEventListener("keydown", e => { if (e.key === "Enter") saveOnboarding(); });
+$("#onbSkip").onclick = () => {
+  if (onbMode === "edit") { $("#onbOverlay").classList.add("hidden"); return; }
+  if (onbMode === "new" && accountId) { $("#onbOverlay").classList.add("hidden"); return; }  // cancel add-account
+  if (onbMode === "new" && readIndex().accounts.length) { $("#onbOverlay").classList.add("hidden"); showLogin(); return; }
+  // brand-new user skipped setup → guest account so their data still has a home
+  const prof = { name: "Friend", avatar: onbAvatar, tag: "", joined: todayStr() };
+  const id = "a_" + uid();
+  const fresh = blankState(); fresh.profile = prof;
+  const idx = readIndex();
+  idx.accounts.push({ id, name: prof.name, avatar: prof.avatar, hasPin: false, salt: "", hash: "", created: todayStr() });
+  writeIndex(idx);
+  try { localStorage.setItem(acctKey(id), JSON.stringify(fresh)); } catch (e) {}
+  signIn(id);
+  toast("No pressure — Spark is ready when you are ⚡", "👋");
+};
+$("#onbOverlay").addEventListener("click", e => {
+  // dismiss-by-outside-click only in edit mode; first-run keeps the spotlight
+  if (onbMode === "edit" && e.target === $("#onbOverlay")) $("#onbOverlay").classList.add("hidden");
+});
+$("#profileChip").onclick = () => openOnboarding("edit");
+$("#editProfileBtn").onclick = () => openOnboarding("edit");
+$("#heroProfile").onclick = () => openOnboarding("edit");
+
+function renderProfileCard(){
+  const av = $("#setAvatar"), nm = $("#setName"), tg = $("#setTag");
+  if (!av) return;
+  if (state.profile && state.profile.name && state.profile.name !== "Friend") {
+    av.textContent = state.profile.avatar || "👋";
+    nm.textContent = `${state.profile.avatar || "👋"} ${state.profile.name}`;
+    tg.textContent = (state.profile.tag ? `“${state.profile.tag}” · ` : "") + `Sparking since ${fmtDate(state.profile.joined)}`;
+  } else if (state.profile) {
+    av.textContent = state.profile.avatar || "👋";
+    nm.textContent = "Guest explorer";
+    tg.textContent = `Sparking since ${fmtDate(state.profile.joined)} — add your name for a personal touch.`;
+  } else {
+    av.textContent = "👋";
+    nm.textContent = "Not set up yet";
+    tg.textContent = "Tap “Edit profile” to add your name, avatar & motto.";
+  }
+}
+
+/* ---------------- misc ---------------- */
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
+
+/* ---------------- auto-lock ---------------- */
+let lastActivity = Date.now();
+function bumpActivity(){ lastActivity = Date.now(); }
+["pointerdown", "keydown", "wheel", "touchstart"].forEach(ev => document.addEventListener(ev, bumpActivity, { passive: true }));
+setInterval(() => {
+  const mins = state.autolock || 0;
+  if (accountId && mins > 0 && Date.now() - lastActivity > mins * 60000){
+    signOut();
+    toast("Auto-locked after inactivity 🔒", "⏱");
+  }
+}, 20000);
+
+/* ---------------- boot ---------------- */
+migrateLegacy();
+applyUiTheme();
+(function bootSession(){
+  let sess = null;
+  try { sess = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) {}
+  const idx = readIndex();
+  if (sess && sess.id && idx.accounts.some(a => a.id === sess.id)) {
+    signIn(sess.id, { silent: true });
+  } else {
+    state = blankState();
+    render();
+    showLogin();
+    if (!idx.accounts.length) openOnboarding("new");
+  }
+})();
+setInterval(() => { /* midnight rollover: spend any freeze for the new day, re-render */
+  if (window.__sparkDay !== todayStr()) { window.__sparkDay = todayStr(); if (accountId) applyFreezes(); render(); }
+}, 60000);
+window.__sparkDay = todayStr();
+
+</script>
+</body>
+</html>
